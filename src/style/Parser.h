@@ -39,7 +39,7 @@ private:
 	bool parseSelector(TokenList& tokens, Descriptor* descriptor);
 	bool parseProperty(TokenList& tokens, Descriptor* descriptor);
 
-	bool parseEvaluatedValue(TokenList& tokens, vector<Value*>& values);
+	bool parseValueAndEvaluate(TokenList& tokens, vector<Value*>& values);
 
 	Descriptor* parseDescriptor(TokenList& tokens);
 	Descriptor* parseChildDescriptor(TokenList& tokens);

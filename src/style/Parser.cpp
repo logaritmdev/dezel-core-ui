@@ -89,7 +89,7 @@ Parser::Parser(vector<Value*>& values, Tokenizer* tokenizer) : stylesheet(nullpt
 			break;
 		}
 
-		auto parsed = this->parseEvaluatedValue(tokens, values);
+		auto parsed = this->parseValueAndEvaluate(tokens, values);
 
 		if (parsed) {
 			tokens.nextToken();
@@ -210,36 +210,38 @@ Parser::parseProperty(TokenList& tokens, Descriptor* target)
 }
 
 bool
-Parser::parseEvaluatedValue(TokenList& tokens, vector<Value*>& values)
+Parser::parseValueAndEvaluate(TokenList& tokens, vector<Value*>& values)
 {
-	auto result = this->parseValue(tokens);
+	auto value = this->parseValue(tokens);
 
-	if (result == nullptr) {
+	if (value == nullptr) {
 		return false;
 	}
 
-	if (result->getType() == kValueTypeVariable ||
-		result->getType() == kValueTypeFunction) {
+	if (value->getType() == kValueTypeVariable && this->evaluateVariable(value, values)) {
 
-		bool evaluated = false;
+		/*
+		 * The parsed value has been replaced by the function or variable
+		 * and we don't need it anymore.
+		 */
 
-		if (this->evaluateVariable(result, values)) evaluated = true;
-		if (this->evaluateFunction(result, values)) evaluated = true;
+		delete value;
 
-		if (evaluated) {
-
-			/*
-			 * The parsed value has been replaced by the function or variable
-			 * and we don't need it anymore.
-			 */
-
-			delete result;
-
-			return true;
-		}
+		return true;
 	}
 
-	values.push_back(result);
+	if (value->getType() == kValueTypeFunction && this->evaluateFunction(value, values)) {
+
+		/*
+		 * The value used to be deleted just like the variable. However, it
+		 * can be quite problematic if one of the function's argument is used
+		 * by the function. For this reason I do not delete the value anymore
+		 */
+
+		return true;
+	}
+
+	values.push_back(value);
 
 	return true;
 }
@@ -412,7 +414,7 @@ Parser::parseVariable(TokenList& tokens)
 
 	while (true) {
 
-		auto parsed = this->parseEvaluatedValue(tokens, variable->values);
+		auto parsed = this->parseValueAndEvaluate(tokens, variable->values);
 
 		if (parsed) {
 			tokens.nextToken();
@@ -559,7 +561,7 @@ Parser::parseProperty(TokenList& tokens)
 
 	while (true) {
 
-		auto parsed = this->parseEvaluatedValue(tokens, property->values);
+		auto parsed = this->parseValueAndEvaluate(tokens, property->values);
 
 		if (parsed) {
 			tokens.nextToken();
