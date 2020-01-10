@@ -705,7 +705,7 @@ DisplayNode::resolveTraits()
 	if (this->invalidTraits == false) {
 		return;
 	}
-
+	
 	Matches matches;
 	Matcher matcher;
 

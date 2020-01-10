@@ -3,6 +3,7 @@
 
 #include <float.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 #define ABS_DBL_MIN -DBL_MAX
 #define ABS_DBL_MAX +DBL_MAX
@@ -64,10 +65,10 @@ typedef struct OpaqueFunctionValue* FunctionValueRef;
 typedef struct OpaqueStylesheet* StylesheetRef;
 
 /**
-* @typedef ParseError
-* @since 0.1.0
-* @hidden
-*/
+ * @typedef ParseError
+ * @since 0.1.0
+ * @hidden
+ */
 typedef struct {
 	const char* message;
 	const char* url;
