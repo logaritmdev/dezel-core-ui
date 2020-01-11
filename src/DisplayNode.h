@@ -128,6 +128,7 @@ private:
 	bool invalidContentSize = false;
 	bool invalidContentOrigin = false;
 	bool invalidPadding = false;
+	bool invalidExtent = false;
 	bool invalidLayout = false;
 	bool invalidTraits = false;
 	bool invalidStyleTraits = false;
@@ -140,8 +141,8 @@ private:
 	DisplayNodeCallback resolveOriginCallback = nullptr;
 	DisplayNodeCallback resolveInnerSizeCallback = nullptr;
 	DisplayNodeCallback resolveContentSizeCallback = nullptr;
-	DisplayNodeCallback resolveMarginCallback = nullptr;
-	DisplayNodeCallback resolveBorderCallback = nullptr;
+	DisplayNodeCallback resolveMarginsCallback = nullptr;
+	DisplayNodeCallback resolveBordersCallback = nullptr;
 	DisplayNodeCallback resolvePaddingCallback = nullptr;
 	DisplayNodeCallback prepareLayoutCallback = nullptr;
 	DisplayNodeCallback resolveLayoutCallback = nullptr;
@@ -203,8 +204,8 @@ protected:
 	bool hasInvalidOrigin();
 	bool hasInvalidInnerSize();
 	bool hasInvalidContentSize();
-	bool hasInvalidMargin();
-	bool hasInvalidBorder();
+	bool hasInvalidMargins();
+	bool hasInvalidBorders();
 	bool hasInvalidPadding();
 	bool hasInvalidLayout();
 
@@ -212,9 +213,10 @@ protected:
 	void invalidateInnerSize();
 	void invalidateContentSize();
 	void invalidateContentOrigin();
-	void invalidateMargin();
-	void invalidateBorder();
+	void invalidateMargins();
+	void invalidateBorders();
 	void invalidatePadding();
+	void invalidateExtent();
 	void invalidateParent();
 	void invalidateTraits();
 	void invalidateStyleTraits();
@@ -225,8 +227,8 @@ protected:
 
 	void resolveTraits();
 	void resolveLayout();
-	void resolveMargin();
-	void resolveBorder();
+	void resolveMargins();
+	void resolveBorders();
 	void resolveInnerSize();
 	void resolveContentSize();
 	void resolvePadding();
@@ -289,15 +291,15 @@ protected:
 		}
 	}
 
-	void didResolveMargin() {
-		if (this->resolveMarginCallback) {
-			this->resolveMarginCallback(reinterpret_cast<DisplayNodeRef>(this));
+	void didResolveMargins() {
+		if (this->resolveMarginsCallback) {
+			this->resolveMarginsCallback(reinterpret_cast<DisplayNodeRef>(this));
 		}
 	}
 
-	void didResolveBorder() {
-		if (this->resolveBorderCallback) {
-			this->resolveBorderCallback(reinterpret_cast<DisplayNodeRef>(this));
+	void didResolveBorders() {
+		if (this->resolveBordersCallback) {
+			this->resolveBordersCallback(reinterpret_cast<DisplayNodeRef>(this));
 		}
 	}
 
@@ -503,12 +505,12 @@ public:
 		this->resolveContentSizeCallback = callback;
 	}
 
-	void setResolveMarginCallback(DisplayNodeCallback callback) {
-		this->resolveMarginCallback = callback;
+	void setResolveMarginsCallback(DisplayNodeCallback callback) {
+		this->resolveMarginsCallback = callback;
 	}
 
-	void setResolveBorderCallback(DisplayNodeCallback callback) {
-		this->resolveBorderCallback = callback;
+	void setResolveBordersCallback(DisplayNodeCallback callback) {
+		this->resolveBordersCallback = callback;
 	}
 
 	void setResolvePaddingCallback(DisplayNodeCallback callback) {
@@ -672,9 +674,10 @@ public:
 	void invalidateSize();
 	void invalidateOrigin();
 	void invalidateLayout();
-	
+
 	void measure();
 	void resolve();
+	void cleanup();
 
 	string toString();
 

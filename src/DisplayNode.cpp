@@ -80,7 +80,7 @@ DisplayNode::hasInvalidOrigin()
 }
 
 bool
-DisplayNode::hasInvalidMargin()
+DisplayNode::hasInvalidMargins()
 {
 	if (this->invalidMargin) {
 		return true;
@@ -165,7 +165,7 @@ DisplayNode::hasInvalidMargin()
 }
 
 bool
-DisplayNode::hasInvalidBorder()
+DisplayNode::hasInvalidBorders()
 {
 	if (this->invalidBorder) {
 		return true;
@@ -486,7 +486,7 @@ DisplayNode::invalidateContentOrigin()
 }
 
 void
-DisplayNode::invalidateMargin()
+DisplayNode::invalidateMargins()
 {
 	if (this->invalidMargin == false) {
 		this->invalidMargin = true;
@@ -495,7 +495,7 @@ DisplayNode::invalidateMargin()
 }
 
 void
-DisplayNode::invalidateBorder()
+DisplayNode::invalidateBorders()
 {
 	if (this->invalidBorder == false) {
 		this->invalidBorder = true;
@@ -508,6 +508,15 @@ DisplayNode::invalidatePadding()
 {
 	if (this->invalidPadding == false) {
 		this->invalidPadding = true;
+		this->invalidate();
+	}
+}
+
+void
+DisplayNode::invalidateExtent()
+{
+	if (this->invalidExtent == false) {
+		this->invalidExtent = true;
 		this->invalidate();
 	}
 }
@@ -531,6 +540,7 @@ DisplayNode::invalidateParent()
 		return;
 	}
 
+	parent->invalidateExtent();
 	parent->invalidateLayout();
 
 	/*
@@ -569,6 +579,7 @@ DisplayNode::invalidateParent()
 				this->invalidateSize();
 				this->invalidateOrigin();
 				this->invalidateLayout();
+				this->invalidateExtent();
 
 				if (w.type == kSizeTypeWrap ||
 					h.type == kSizeTypeWrap) {
@@ -772,11 +783,6 @@ DisplayNode::resolveLayout()
 	 * pass from its parent.
 	 */
 
-	this->measuredInnerWidthChanged = false;
-	this->measuredInnerHeightChanged = false;
-	this->measuredContentWidthChanged = false;
-	this->measuredContentHeightChanged = false;
-
 	if (this->isWindow()) {
 
 		if (this->invalidSize) {
@@ -821,27 +827,20 @@ DisplayNode::resolveLayout()
 
 			this->invalidSize = false;
 		}
+
+		this->resolveBorders();
+		this->resolveInnerSize();
+		this->resolveContentSize();
+		this->resolvePadding();
 	}
-
-	/*
-	 * Each of the following starts by checking if a resolve operation is
-	 * required or not. There may be a better way to do this, but at this point
-	 * this is the best way I've found to handle sizes that needs to be
-	 * invalidated when wither the parent or the viewport size changes.
-	 */
-
-	this->resolveBorder();
-	this->resolveInnerSize();
-	this->resolveContentSize();
-	this->resolvePadding();
 
 	this->performLayout();
 }
 
 void
-DisplayNode::resolveMargin()
+DisplayNode::resolveMargins()
 {
-	if (this->hasInvalidMargin() == false) {
+	if (this->hasInvalidMargins() == false) {
 		return;
 	}
 
@@ -862,16 +861,16 @@ DisplayNode::resolveMargin()
 
 		this->invalidateOrigin();
 
-		this->didResolveMargin();
+		this->didResolveMargins();
 	}
 
 	this->invalidMargin = false;
 }
 
 void
-DisplayNode::resolveBorder()
+DisplayNode::resolveBorders()
 {
-	if (this->hasInvalidBorder() == false) {
+	if (this->hasInvalidBorders() == false) {
 		return;
 	}
 
@@ -892,7 +891,7 @@ DisplayNode::resolveBorder()
 
 		this->invalidateInnerSize();
 
-		this->didResolveBorder();
+		this->didResolveBorders();
 	}
 
 	this->invalidBorder = false;
@@ -1004,27 +1003,23 @@ DisplayNode::resolveWrapper(double w, double h)
 		 */
 
 		if (this->invalidSize == false &&
-			this->invalidLayout == false) {
+			this->invalidExtent == false) {
 			return;
 		}
 	}
 
+	const auto currW = this->measuredWidth;
+	const auto currH = this->measuredHeight;
 	const bool wrapW = this->inheritedWrappedContentWidth;
 	const bool wrapH = this->inheritedWrappedContentHeight;
 
-	auto measuredW = this->measuredWidth;
-	auto measuredH = this->measuredHeight;
-
-	if (wrapW) w = 0;
-	if (wrapH) h = 0;
-
-	this->measuredWidth = w;
-	this->measuredHeight = h;
+	double measuredW = wrapW ? 0 : w;
+	double measuredH = wrapH ? 0 : h;
 
 	/*
-	 * When a wrapped node is measured we give the node a chance to returns
-	 * its intrinsic size first. This is useful for views such as text that
-	 * needs their size to fit the text content.
+	 * A wrapped node can define its intrinsic size first. This is useful for
+	 * views who needs their size to fit their content, for example text and
+	 * image views.
 	 */
 
 	MeasuredSize size;
@@ -1032,33 +1027,60 @@ DisplayNode::resolveWrapper(double w, double h)
 	size.height = -1;
 
 	this->measure(
-		&size, w, h,
+		&size,
+		measuredW,
+		measuredH,
 		this->width.min,
 		this->width.max,
 		this->height.min,
 		this->height.max
 	);
 
-	bool hasIntrinsicW = size.width > -1;
-	bool hasIntrinsicH = size.height > -1;
+	const bool hasIntrinsicW = size.width > -1;
+	const bool hasIntrinsicH = size.height > -1;
 
-	if (wrapW && hasIntrinsicW) this->measuredWidth = size.width;
-	if (wrapH && hasIntrinsicH) this->measuredHeight = size.height;
+	if (wrapW && hasIntrinsicW) measuredW = size.width;
+	if (wrapH && hasIntrinsicH) measuredH = size.height;
+
+	/*
+	 * Set these properties to 0 because the will be recomputed later on and
+	 * they must not interfere with the following computations.
+	 */
+
+	this->measuredBorderTop = 0;
+	this->measuredBorderLeft = 0;
+	this->measuredBorderRight = 0;
+	this->measuredBorderBottom = 0;
+
+	this->measuredPaddingTop = 0;
+	this->measuredPaddingLeft = 0;
+	this->measuredPaddingRight = 0;
+	this->measuredPaddingBottom = 0;
 
 	if (hasIntrinsicW == false ||
 		hasIntrinsicH == false) {
 
 		/*
-		 * At this point the node size is determined by its content, padding
-		 * and border. We set the padding to 0 because it might have been
-		 * incorrectly resolved previously, for instance when using relative
-		 * to size units.
+		 * Sets the node measured size from values received. Assign 0 to any
+		 * wrapped size and resolve the inner and content size because nested
+		 * nodes will use these values to measure themselves.
 		 */
 
-		this->measuredPaddingTop = 0;
-		this->measuredPaddingLeft = 0;
-		this->measuredPaddingRight = 0;
-		this->measuredPaddingBottom = 0;
+		this->measuredWidth = measuredW;
+		this->measuredHeight = measuredH;
+
+		if (measuredW != currW ||
+			measuredH != currH) {
+			this->invalidateInnerSize();
+		}
+
+		this->resolveInnerSize();
+		this->resolveContentSize();
+
+		/*
+		 * Measure the view by performing a layout operation and computing the
+		 * extent of the layout.
+		 */
 
 		const auto contentAlignment = this->contentAlignment;
 		const auto contentDisposition = this->contentDisposition;
@@ -1071,32 +1093,28 @@ DisplayNode::resolveWrapper(double w, double h)
 		this->contentAlignment = contentAlignment;
 		this->contentDisposition = contentDisposition;
 
-		if (wrapW) w = this->layout.getExtentRight() - this->layout.getExtentLeft();
-		if (wrapH) h = this->layout.getExtentBottom() - this->layout.getExtentTop();
-
-		this->measuredWidth = w;
-		this->measuredHeight = h;
+		if (wrapW) measuredW = this->layout.getExtentWidth();
+		if (wrapH) measuredH = this->layout.getExtentHeight();
 	}
 
-	/*
-	 * The padding and border can be expressed as a relative measure of the
-	 * view. In the case of a wrapped node, the padding and border size will be
-	 * based on the node size.
-	 */
-
 	if (this->measuredWidth != measuredW) {
+		this->measuredWidth = measuredW;
 		this->measuredWidthChanged = true;
 		this->invalidateInnerSize();
 	}
 
 	if (this->measuredHeight != measuredH) {
+		this->measuredHeight = measuredH;
 		this->measuredHeightChanged = true;
 		this->invalidateInnerSize();
 	}
 
+	this->invalidateBorders();
+	this->invalidatePadding();
+
 	this->resolveInnerSize();
 	this->resolveContentSize();
-	this->resolveBorder();
+	this->resolveBorders();
 	this->resolvePadding();
 
 	const auto borderT = this->measuredBorderTop;
@@ -1120,56 +1138,45 @@ DisplayNode::resolveWrapper(double w, double h)
 		this->invalidateLayout();
 	}
 
-	this->measuredWidth += borderL + borderR + paddingL + paddingR;
-	this->measuredHeight += borderT + borderB + paddingT + paddingB;
+	if (wrapW) measuredW += borderL + borderR + paddingL + paddingR;
+	if (wrapH) measuredH += borderT + borderB + paddingT + paddingB;
 
-	const auto scale = this->display->scale;
-
-	measuredW = this->measuredWidth;
-	measuredH = this->measuredHeight;
-
-	this->measuredWidth = round(this->measuredWidth, scale);
-	this->measuredHeight = round(this->measuredHeight, scale);
-
-	this->measuredWidth = clamp(
-		this->measuredWidth,
+	measuredW = clamp(
+		round(measuredW, this->display->scale),
 		this->width.min,
 		this->width.max
 	);
 
-	this->measuredHeight = clamp(
-		this->measuredHeight,
+	measuredH = clamp(
+		round(measuredH, this->display->scale),
 		this->height.min,
 		this->height.max
 	);
 
+	/*
+	 * The node size has been limited to a certain size, this invalidates
+	 * the inner and content size as well as the layout.
+	 */
+
 	if (this->measuredWidth != measuredW ||
 		this->measuredHeight != measuredH) {
 
-		/*
-		 * The node size has been limited to a certain size, this invalidates
-		 * the inner and content size as well as the layout.
-		 */
+		if (this->measuredWidth != measuredW) {
+			this->measuredWidth = measuredW;
+			this->measuredWidthChanged = true;
+		}
 
-		this->invalidateInnerSize();
+		if (this->measuredHeight != measuredH) {
+			this->measuredHeight = measuredH;
+			this->measuredHeightChanged = true;
+		}
+
 		this->invalidateLayout();
+		this->invalidateInnerSize();
 
 		this->resolveInnerSize();
 		this->resolveContentSize();
 	}
-
-	/*
-	 * The following members, when set to true might allow the border and
-	 * padding to be resolved again. Since these are resolved here, there is
-	 * no reason to allow them to be resolved again.
-	 */
-
-	this->measuredWidthChanged = false;
-	this->measuredHeightChanged = false;
-	this->measuredInnerWidthChanged = false;
-	this->measuredInnerHeightChanged = false;
-	this->measuredContentWidthChanged = false;
-	this->measuredContentHeightChanged = false;
 }
 
 void
@@ -2166,7 +2173,7 @@ DisplayNode::setBorderTop(BorderType type, BorderUnit unit, double length)
     this->borderTop.unit = unit;
     this->borderTop.length = length;
 
-    this->invalidateBorder();
+    this->invalidateBorders();
 }
 
 void
@@ -2182,7 +2189,7 @@ DisplayNode::setBorderLeft(BorderType type, BorderUnit unit, double length)
     this->borderLeft.unit = unit;
     this->borderLeft.length = length;
 
-    this->invalidateBorder();
+    this->invalidateBorders();
 }
 
 void
@@ -2198,7 +2205,7 @@ DisplayNode::setBorderRight(BorderType type, BorderUnit unit, double length)
 	this->borderRight.unit = unit;
 	this->borderRight.length = length;
 
-    this->invalidateBorder();
+    this->invalidateBorders();
 }
 
 void
@@ -2214,7 +2221,7 @@ DisplayNode::setBorderBottom(BorderType type, BorderUnit unit, double length)
     this->borderBottom.unit = unit;
     this->borderBottom.length = length;
 
-    this->invalidateBorder();
+    this->invalidateBorders();
 }
 
 void
@@ -2228,7 +2235,7 @@ DisplayNode::setMarginTop(MarginType type, MarginUnit unit, double length)
 	this->marginTop.unit = unit;
 	this->marginTop.length = length;
 
-	this->invalidateMargin();
+	this->invalidateMargins();
 }
 
 void
@@ -2242,7 +2249,7 @@ DisplayNode::setMarginLeft(MarginType type, MarginUnit unit, double length)
 	this->marginLeft.unit = unit;
 	this->marginLeft.length = length;
 
-	this->invalidateMargin();
+	this->invalidateMargins();
 }
 
 void
@@ -2256,7 +2263,7 @@ DisplayNode::setMarginRight(MarginType type, MarginUnit unit, double length)
 	this->marginRight.unit = unit;
 	this->marginRight.length = length;
 
-	this->invalidateMargin();
+	this->invalidateMargins();
 }
 
 void
@@ -2270,7 +2277,7 @@ DisplayNode::setMarginBottom(MarginType type, MarginUnit unit, double length)
 	this->marginBottom.unit = unit;
 	this->marginBottom.length = length;
 
-	this->invalidateMargin();
+	this->invalidateMargins();
 }
 
 void
@@ -2278,7 +2285,7 @@ DisplayNode::setMinMarginTop(double min)
 {
 	if (this->marginTop.min != min) {
 		this->marginTop.min = min;
-		this->invalidateMargin();
+		this->invalidateMargins();
 	}
 }
 
@@ -2287,7 +2294,7 @@ DisplayNode::setMaxMarginTop(double max)
 {
 	if (this->marginTop.max != max) {
 		this->marginTop.max = max;
-		this->invalidateMargin();
+		this->invalidateMargins();
 	}
 }
 
@@ -2296,7 +2303,7 @@ DisplayNode::setMinMarginLeft(double min)
 {
 	if (this->marginLeft.min != min) {
 		this->marginLeft.min = min;
-		this->invalidateMargin();
+		this->invalidateMargins();
 	}
 }
 
@@ -2305,7 +2312,7 @@ DisplayNode::setMaxMarginLeft(double max)
 {
 	if (this->marginLeft.max != max) {
 		this->marginLeft.max = max;
-		this->invalidateMargin();
+		this->invalidateMargins();
 	}
 }
 
@@ -2314,7 +2321,7 @@ DisplayNode::setMinMarginRight(double min)
 {
 	if (this->marginRight.min != min) {
 		this->marginRight.min = min;
-		this->invalidateMargin();
+		this->invalidateMargins();
 	}
 }
 
@@ -2323,7 +2330,7 @@ DisplayNode::setMaxMarginRight(double max)
 {
 	if (this->marginRight.max != max) {
 		this->marginRight.max = max;
-		this->invalidateMargin();
+		this->invalidateMargins();
 	}
 }
 
@@ -2332,7 +2339,7 @@ DisplayNode::setMinMarginBottom(double min)
 {
 	if (this->marginBottom.min != min) {
 		this->marginBottom.min = min;
-		this->invalidateMargin();
+		this->invalidateMargins();
 	}
 }
 
@@ -2341,7 +2348,7 @@ DisplayNode::setMaxMarginBottom(double max)
 {
 	if (this->marginBottom.max != max) {
 		this->marginBottom.max = max;
-		this->invalidateMargin();
+		this->invalidateMargins();
 	}
 }
 
@@ -2359,6 +2366,9 @@ DisplayNode::setPaddingTop(PaddingType type, PaddingUnit unit, double length)
 	this->paddingTop.length = length;
 
 	this->invalidatePadding();
+
+	this->invalidateExtent();
+	this->invalidateLayout();
 }
 
 void
@@ -2375,6 +2385,9 @@ DisplayNode::setPaddingLeft(PaddingType type, PaddingUnit unit, double length)
 	this->paddingLeft.length = length;
 
 	this->invalidatePadding();
+
+	this->invalidateExtent();
+	this->invalidateLayout();
 }
 
 void
@@ -2391,6 +2404,9 @@ DisplayNode::setPaddingRight(PaddingType type, PaddingUnit unit, double length)
 	this->paddingRight.length = length;
 
 	this->invalidatePadding();
+
+	this->invalidateExtent();
+	this->invalidateLayout();
 }
 
 void
@@ -2407,6 +2423,9 @@ DisplayNode::setPaddingBottom(PaddingType type, PaddingUnit unit, double length)
 	this->paddingBottom.length = length;
 
 	this->invalidatePadding();
+	
+	this->invalidateExtent();
+	this->invalidateLayout();
 }
 
 void
@@ -2577,32 +2596,6 @@ DisplayNode::removeChild(DisplayNode* child)
 }
 
 void
-DisplayNode::resolve()
-{
-	if (this->resolving) {
-		return;
-	}
-
-	if (this->display == nullptr) {
-		throw InvalidOperationException("Cannot resolve a node who's display is null.");
-	}
-
-	if (this->display->resolving == false) {
-		this->display->resolve();
-		return;
-	}
-
-	this->resolving = true;
-
-	this->resolveTraits();
-	this->resolveLayout();
-
-	this->resolving = false;
-
-	this->invalid = false;
-}
-
-void
 DisplayNode::measure()
 {
 	if (this->resolving) {
@@ -2652,6 +2645,43 @@ DisplayNode::measure()
 	this->didResolveSize();
 
 	this->invalidSize = false;
+}
+
+void
+DisplayNode::resolve()
+{
+	if (this->resolving) {
+		return;
+	}
+
+	if (this->display == nullptr) {
+		throw InvalidOperationException("Cannot resolve a node who's display is null.");
+	}
+
+	if (this->display->resolving == false) {
+		this->display->resolve();
+		return;
+	}
+
+	this->resolving = true;
+
+	this->resolveTraits();
+	this->resolveLayout();
+
+	this->resolving = false;
+
+	this->invalid = false;
+}
+
+void
+DisplayNode::cleanup()
+{
+	this->measuredWidthChanged = false;
+	this->measuredHeightChanged = false;
+	this->measuredInnerWidthChanged = false;
+	this->measuredInnerHeightChanged = false;
+	this->measuredContentWidthChanged = false;
+	this->measuredContentHeightChanged = false;
 }
 
 void

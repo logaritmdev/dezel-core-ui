@@ -314,16 +314,13 @@ RelativeLayoutResolver::measure(DisplayNode* child, double &remainingW, double &
 	auto measuredW = child->measuredWidth;
 	auto measuredH = child->measuredHeight;
 
-	child->measuredWidthChanged = false;
-	child->measuredHeightChanged = false;
-
 	/*
 	 * Resolving the node margin must be done before measuring because
 	 * it might influence its size, for instance, when using negatives
 	 * margins on opposite sides.
 	 */
 
-	child->resolveMargin();
+	child->resolveMargins();
 
 	if (this->hasInvalidSize(child)) {
 
@@ -347,8 +344,11 @@ RelativeLayoutResolver::measure(DisplayNode* child, double &remainingW, double &
 	}
 
 	if (wrapW || wrapH) {
-	
-		child->resolveWrapper(measuredW, measuredH);
+
+		child->resolveWrapper(
+			measuredW,
+			measuredH
+		);
 
 	} else {
 
@@ -363,6 +363,7 @@ RelativeLayoutResolver::measure(DisplayNode* child, double &remainingW, double &
 			child->measuredHeightChanged = true;
 			child->invalidateInnerSize();
 		}
+
 	}
 }
 
@@ -605,6 +606,11 @@ RelativeLayoutResolver::resolve()
 		child->resolvedSize = true;
 		child->resolvedOrigin = true;
 		child->resolvedParent = this->node;
+
+		child->resolveBorders();
+		child->resolveInnerSize();
+		child->resolveContentSize();
+		child->resolvePadding();
 	}
 
 	this->extentRight += paddingR;

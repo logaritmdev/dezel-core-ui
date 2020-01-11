@@ -481,16 +481,13 @@ AbsoluteLayoutResolver::measure(DisplayNode* child)
 	auto measuredW = child->measuredWidth;
 	auto measuredH = child->measuredHeight;
 
-	child->measuredWidthChanged = false;
-	child->measuredHeightChanged = false;
-
 	/*
 	 * Resolving the node margin must be done before measuring because
 	 * it might influence its size, for instance, when using negatives
 	 * margins on opposite sides.
 	 */
 
-	child->resolveMargin();
+	child->resolveMargins();
 
 	if (this->hasInvalidSize(child)) {
 		if (wrapW == false) measuredW = this->measureWidth(child);
@@ -499,7 +496,10 @@ AbsoluteLayoutResolver::measure(DisplayNode* child)
 
 	if (wrapW || wrapH) {
 
-		child->resolveWrapper(measuredW, measuredH);
+		child->resolveWrapper(
+			measuredW,
+			measuredH
+		);
 
 	} else {
 
@@ -514,7 +514,6 @@ AbsoluteLayoutResolver::measure(DisplayNode* child)
 			child->measuredHeightChanged = true;
 			child->invalidateInnerSize();
 		}
-
 	}
 }
 
@@ -580,10 +579,15 @@ AbsoluteLayoutResolver::resolve()
 
 		child->resolvedSize = true;
 		child->resolvedOrigin = true;
-		child->resolvedParent = node;
+		child->resolvedParent = this->node;
 
 		child->invalidSize = false;
 		child->invalidOrigin = false;
+
+		child->resolveBorders();
+		child->resolveInnerSize();
+		child->resolveContentSize();
+		child->resolvePadding();
 	}
 
 	this->nodes.clear();

@@ -128,6 +128,7 @@ public:
 
 	void invalidate();
 	void resolve();
+	void cleanup();
 
 };
 

@@ -34,9 +34,6 @@ LayoutResolver::resolve() {
 	 * thus we need to resolve it again in case.
 	 */
 
-	this->node->resolveContentSize();
-	this->node->resolvePadding();
-
 	if (this->node->children.size() == 0) {
 		return;
 	}

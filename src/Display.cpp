@@ -106,7 +106,7 @@ Display::resolve()
 	if (this->resolving) {
 		return;
 	}
-
+	
 	this->resolving = true;
 
 	this->didPrepare();
@@ -120,12 +120,25 @@ Display::resolve()
 
 	this->didResolve();
 
+	this->cleanup();
+
 	this->resolving = false;
 
 	this->viewportWidthChanged = false;
 	this->viewportHeightChanged = false;
 
 	this->invalid = false;
+}
+
+void
+Display::cleanup()
+{
+	DisplayNodeWalker wakler(this->window);
+
+	while (wakler.hasNext()) {
+		wakler.getNode()->cleanup();
+		wakler.getNext();
+	}
 }
 
 }

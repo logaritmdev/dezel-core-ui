@@ -660,15 +660,15 @@ DisplayNodeSetResolveContentSizeCallback(DisplayNodeRef node, DisplayNodeCallbac
 }
 
 void
-DisplayNodeSetResolveMarginCallback(DisplayNodeRef node, DisplayNodeCallback callback)
+DisplayNodeSetResolveMarginsCallback(DisplayNodeRef node, DisplayNodeCallback callback)
 {
-	reinterpret_cast<DisplayNode*>(node)->setResolveMarginCallback(callback);
+	reinterpret_cast<DisplayNode*>(node)->setResolveMarginsCallback(callback);
 }
 
 void
-DisplayNodeSetResolveBorderCallback(DisplayNodeRef node, DisplayNodeCallback callback)
+DisplayNodeSetResolveBordersCallback(DisplayNodeRef node, DisplayNodeCallback callback)
 {
-	reinterpret_cast<DisplayNode*>(node)->setResolveBorderCallback(callback);
+	reinterpret_cast<DisplayNode*>(node)->setResolveBordersCallback(callback);
 }
 
 void

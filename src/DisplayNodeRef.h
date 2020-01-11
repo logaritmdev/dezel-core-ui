@@ -772,18 +772,18 @@ void DisplayNodeSetResolveInnerSizeCallback(DisplayNodeRef node, DisplayNodeCall
 void DisplayNodeSetResolveContentSizeCallback(DisplayNodeRef node, DisplayNodeCallback callback);
 
 /**
- * @function DisplayNodeSetResolveMarginCallback
+ * @function DisplayNodeSetResolveMarginsCallback
  * @since 0.1.0
  * @hidden
  */
-void DisplayNodeSetResolveMarginCallback(DisplayNodeRef node, DisplayNodeCallback callback);
+void DisplayNodeSetResolveMarginsCallback(DisplayNodeRef node, DisplayNodeCallback callback);
 
 /**
- * @function DisplayNodeSetResolveBorderCallback
+ * @function DisplayNodeSetResolveBordersCallback
  * @since 0.1.0
  * @hidden
  */
-void DisplayNodeSetResolveBorderCallback(DisplayNodeRef node, DisplayNodeCallback callback);
+void DisplayNodeSetResolveBordersCallback(DisplayNodeRef node, DisplayNodeCallback callback);
 
 /**
  * @function DisplayNodeSetResolvePaddingCallback

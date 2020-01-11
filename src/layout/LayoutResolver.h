@@ -42,6 +42,14 @@ public:
 		return this->relativeLayout.extentBottom;
 	}
 
+	double getExtentWidth() const {
+		return this->getExtentRight() - this->getExtentLeft();
+	}
+
+	double getExtentHeight() const {
+		return this->getExtentBottom() - this->getExtentTop();
+	}
+
 	void measureAbsoluteNode(DisplayNode* node) {
 		this->absoluteLayout.measure(node);
 	}
