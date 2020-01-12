@@ -91,7 +91,14 @@ typedef enum {
  * @hidden
  */
 typedef enum {
-	kAnchorUnitPC = 1
+	kAnchorUnitPX = 1,
+	kAnchorUnitPC = 2,
+	kAnchorUnitVW = 3,
+	kAnchorUnitVH = 4,
+	kAnchorUnitPW = 5,
+	kAnchorUnitPH = 6,
+	kAnchorUnitCW = 7,
+	kAnchorUnitCH = 8
 } AnchorUnit;
 
 /**

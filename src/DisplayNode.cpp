@@ -1095,6 +1095,20 @@ DisplayNode::resolveWrapper(double w, double h)
 
 		if (wrapW) measuredW = this->layout.getExtentWidth();
 		if (wrapH) measuredH = this->layout.getExtentHeight();
+
+		if (wrapW ^ wrapH) {
+
+			/*
+			 * When wrapping on only one of either the width or height, a
+			 * second layout pass will be required to position the children
+			 * properly unless the content is top left aligned.
+			 */
+
+			if (this->contentAlignment != kContentAlignmentStart ||
+				this->contentDisposition != kContentDispositionStart) {
+				this->invalidateLayout();
+			}
+		}
 	}
 
 	if (this->measuredWidth != measuredW) {
@@ -1195,14 +1209,19 @@ DisplayNode::performLayout()
 double
 DisplayNode::measureAnchorTop()
 {
-	double value = 0;
+	double value = this->anchorTop.length;
 
 	if (this->anchorTop.type == kAnchorTypeLength) {
 
-		value = this->anchorTop.length;
-
 		switch (this->anchorTop.unit) {
 			case kAnchorUnitPC: value = scale(value, this->measuredHeight); break;
+			case kAnchorUnitPW: value = scale(value, this->parent ? this->parent->measuredInnerWidth : 0); break;
+			case kAnchorUnitPH: value = scale(value, this->parent ? this->parent->measuredInnerHeight : 0); break;
+			case kAnchorUnitCW: value = scale(value, this->parent ? this->parent->measuredContentWidth : 0); break;
+			case kAnchorUnitCH: value = scale(value, this->parent ? this->parent->measuredContentHeight : 0); break;
+			case kAnchorUnitVW: value = scale(value, this->display->viewportWidth); break;
+			case kAnchorUnitVH: value = scale(value, this->display->viewportHeight); break;
+
 			default: break;
 		}
 	}
@@ -1213,14 +1232,18 @@ DisplayNode::measureAnchorTop()
 double
 DisplayNode::measureAnchorLeft()
 {
-	double value = 0;
+	double value = this->anchorLeft.length;
 
 	if (this->anchorLeft.type == kAnchorTypeLength) {
 
-		value = this->anchorLeft.length;
-
 		switch (this->anchorLeft.unit) {
 			case kAnchorUnitPC: value = scale(value, this->measuredWidth); break;
+			case kAnchorUnitPW: value = scale(value, this->parent ? this->parent->measuredInnerWidth : 0); break;
+			case kAnchorUnitPH: value = scale(value, this->parent ? this->parent->measuredInnerHeight : 0); break;
+			case kAnchorUnitCW: value = scale(value, this->parent ? this->parent->measuredContentWidth : 0); break;
+			case kAnchorUnitCH: value = scale(value, this->parent ? this->parent->measuredContentHeight : 0); break;
+			case kAnchorUnitVW: value = scale(value, this->display->viewportWidth); break;
+			case kAnchorUnitVH: value = scale(value, this->display->viewportHeight); break;
 			default: break;
 		}
 	}
